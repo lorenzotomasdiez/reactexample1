@@ -1,32 +1,45 @@
 import Header from './components/Header';
 import Tasks from './components/Tasks';
 import AddTask from './components/AddTask';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function App() {
-  const [tasks, setTasks] = useState([
-    {
-        id:1,
-        text:'Doctors Appointment',
-        day: 'Feb 5th at 2:30pm',
-        reminder: true
-    },
-    {
-        id:2,
-        text:'Meeting at School',
-        day: 'Feb 6th at 1:30pm',
-        reminder: true
-    },
-    {
-        id:3,
-        text:'Doctors Appointment',
-        day: 'Feb 5th at 2:30pm',
-        reminder: true
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [tasks, setTasks] = useState([]);
+
+  useEffect(() => {
+    const getTasks = async () => {
+      const tasksFromServer = await fetchTasks();
+      setTasks(tasksFromServer);
     }
-]);
+
+    getTasks()
+  },[]);
+
+  //Fetch Tasks
+  const fetchTasks = async () => {
+    const res = await fetch('http://localhost:5000/tasks');
+    const data = await res.json();
+
+    return data;
+  }
   //Add Task
-  const addTaskAction = () => {
-    console.log('flama');
+  const addTaskAction = async (e) => {
+    const res = await fetch('http://localhost:5000/tasks',
+      {
+        method: 'POST',
+        headers:{
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify(e)
+      })
+      const data = await res.json()
+
+      setTasks([...tasks, data])
+
+    // const id = Math.floor(Math.random()*1000)+1;
+    // const newTask = {id, ...e};
+    // setTasks([...tasks, newTask]);
   };
 
   //Toggle Reminder
@@ -35,13 +48,17 @@ function App() {
   };
 
   //Delete Task
-  const deleteTask = (id) => {
+  const deleteTask = async (id) => {
+    await fetch(`http://localhost:5000/tasks/${id}`, {
+      method:'DELETE'
+    });
+
     setTasks(tasks.filter((e) => e.id !== id));
   };
   return (
     <div className='container'>
-      <Header addTask={addTaskAction}/>
-      <AddTask />
+      <Header onAdd={() => setShowAddTask(!showAddTask)} showAdd={showAddTask}/>
+      {showAddTask && <AddTask addTask={addTaskAction}/>}
       {tasks.length > 0 ? (
         <Tasks tasks={tasks} onDelete={deleteTask} onToggle={toggleReminder}/>
       ) : (
